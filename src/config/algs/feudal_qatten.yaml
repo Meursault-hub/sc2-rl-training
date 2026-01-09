@@ -1,0 +1,50 @@
+# --- Feudal QAtten Configuration ---
+
+# 1. 基础配置
+action_selector: "epsilon_greedy"
+epsilon_start: 1.0
+epsilon_finish: 0.05
+epsilon_anneal_time: 200000 
+runner: "episode"
+buffer_size: 5000
+target_update_interval: 200
+
+# 2. Learner 配置 (关键)
+agent_output_type: "q"
+learner: "feudal_learner" # [必须] 使用新的 Learner
+double_q: True
+mixer: "qatten_new"       # Learner 内部会实例化两个 Mixer，这里指定类型
+agent: "rnn_new"          
+mac: "hierarchical_mac"   # [必须] 使用分层 MAC
+
+# 3. Feudal 参数 (独立更新参数)
+goal_agent: "goal_rnn"
+goal_dim: 16             # 建议稍微大一点，如 16
+goal_interval: 10
+manager_lr: 0.0005       # Manager 学习率通常比 Worker 低一点
+worker_lr: 0.0005        # (注意：在 main.py 参数解析时，可能默认叫 lr，需要在 run.py 确认，或直接用 lr)
+lr: 0.0005               # 默认 lr，用于 Worker
+
+# 4. Mixer 参数
+mixing_embed_dim: 64   
+nonlinear: True        
+hypernet_layers: 2
+hypernet_embed: 64
+adv_hypernet_layers: 1
+adv_hypernet_embed: 64
+num_kernel: 4
+is_minus_one: True
+is_adv_attention: True
+is_stop_gradient: True
+n_head: 8             
+attend_reg_coef: 0.001
+state_bias: True      
+mask_dead: False
+weighted_head: True   
+burn_in_period: 100
+
+# 5. RL 参数
+n_step: 5  
+gamma: 0.99 
+
+name: "feudal_qatten"

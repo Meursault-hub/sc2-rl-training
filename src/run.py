@@ -102,6 +102,17 @@ def run_sequential(args, logger):
         "reward": {"vshape": (1,)},
         "terminated": {"vshape": (1,), "dtype": th.uint8},
     }
+
+    # === [新增代码] ===
+    # 如果是分层控制，必须在 scheme 里注册 goals，否则 buffer 不会分配空间
+    if args.mac == "hierarchical_mac":
+        scheme["goals"] = {
+            "vshape": (args.goal_dim,), 
+            "dtype": th.float32, 
+            "group": "agents" # 每个智能体都有自己的 goal
+        }
+    # =================
+    
     groups = {
         "agents": args.n_agents
     }

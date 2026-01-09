@@ -87,6 +87,12 @@ class EpisodeRunner:
                 "terminated": [(terminated != env_info.get("episode_limit", False),)],
             }
 
+            # === [新增代码] 存储额外数据 (Goals) ===
+            # 将 MAC 产生的 goals 存入 buffer
+            if hasattr(self.mac, "mac_output_extra"):
+                self.batch.update(self.mac.mac_output_extra, ts=self.t)
+            # ====================================
+
             self.batch.update(post_transition_data, ts=self.t)
 
             self.t += 1
