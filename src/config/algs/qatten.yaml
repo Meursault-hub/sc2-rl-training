@@ -44,3 +44,10 @@ n_step: 5  # 或者 3。这意味着模型会看未来 3-5 步的累计奖励，
 gamma: 0.99 # 确保折扣因子足够高，重视远期目标
 
 name: "qatten"
+
+# 使用分层控制器
+mac: "hierarchical_mac"     # 使用新的控制器
+
+goal_agent: "goal_rnn"      # 指定 Goal Agent 类型
+goal_dim: 5                 # 目标向量维度
+goal_interval: 10           # 高层策略每10步更新一次
