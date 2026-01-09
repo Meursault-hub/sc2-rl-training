@@ -1,0 +1,54 @@
+# --- QAtten_New (魔改增强版) specific parameters ---
+
+# 1. Action Selector
+# 使用 Epsilon Greedy 策略，保持探索
+action_selector: "epsilon_greedy"
+epsilon_start: 1.0
+epsilon_finish: 0.05
+epsilon_anneal_time: 200000 # 20万步衰减到 0.05，给足探索时间
+
+runner: "episode"
+buffer_size: 5000
+
+# 2. Update Frequency
+# 目标网络更新频率，200 是一个比较稳健的值
+target_update_interval: 200
+
+# 3. Learner & Architecture
+agent_output_type: "q"
+learner: "qatten_learner"
+double_q: True
+mixer: "qatten_new"  # [关键] 指定使用我们魔改后的 Mixer
+agent: "rnn_new"     # [关键] 指定使用我们魔改后的 Dueling Agent
+
+# [增强参数] 扩大 Mixer 的嵌入维度，配合 Wide V-Net
+mixing_embed_dim: 64   # 原版 32 -> 64
+nonlinear: True        # 开启非线性 Key 提取器 (Deep Key Extractor)
+
+# 超网络参数 (保持默认或微调)
+hypernet_layers: 2
+hypernet_embed: 64
+adv_hypernet_layers: 1
+adv_hypernet_embed: 64
+
+num_kernel: 4
+is_minus_one: True
+is_adv_attention: True
+is_stop_gradient: True
+
+# [增强参数] 多头注意力
+n_head: 8             # 原版 4 -> 8 (增加观察维度)
+attend_reg_coef: 0.001
+state_bias: True      # 开启全局状态偏差 (配合 Wide V-Net)
+mask_dead: False
+weighted_head: True   # 开启加权头，让网络自动学习哪个头更重要
+
+burn_in_period: 100
+
+# 4. RL Hyperparameters
+# N-step return: 加速奖励传播
+n_step: 5  
+gamma: 0.99 
+
+# 实验名称标签
+name: "qatten_new"
