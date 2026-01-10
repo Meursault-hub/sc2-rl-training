@@ -107,6 +107,13 @@ class ParallelRunner:
             # Pass the entire batch of experiences up till now to the agents
             # Receive the actions for each agent at this timestep in a batch for each un-terminated env
             actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, bs=envs_not_terminated, test_mode=test_mode)
+
+            # === [新增代码] 存储额外数据 (Goals) ===
+            # 将 MAC 产生的 goals 存入 buffer
+            # 注意：必须传入 bs=envs_not_terminated，因为 MAC 只输出了活跃环境的 goals
+            if hasattr(self.mac, "mac_output_extra"):
+                self.batch.update(self.mac.mac_output_extra, bs=envs_not_terminated, ts=self.t, mark_filled=False)
+
             cpu_actions = actions.to("cpu").numpy()
 
             # Update the actions taken
