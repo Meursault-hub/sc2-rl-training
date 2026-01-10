@@ -23,7 +23,7 @@ goal_dim: 16             # 建议稍微大一点，如 16
 goal_interval: 10
 manager_lr: 0.0005       # Manager 学习率通常比 Worker 低一点
 worker_lr: 0.0005        # (注意：在 main.py 参数解析时，可能默认叫 lr，需要在 run.py 确认，或直接用 lr)
-lr: 0.0005               # 默认 lr，用于 Worker
+lr: 0.0001               # 默认 lr，用于 Worker
 
 # 4. Mixer 参数
 mixing_embed_dim: 64   

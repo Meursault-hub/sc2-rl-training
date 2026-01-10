@@ -12,7 +12,7 @@ class GoalAgent(nn.Module):
         self.rnn = nn.GRUCell(args.rnn_hidden_dim, args.rnn_hidden_dim)
         
         # 输出目标向量
-        # 使用 tanh 将目标限制在 [-1, 1] 区间，保证数值稳定性
+        # 注意：这里不再使用 Tanh，因为我们要输出分类分布
         self.goal_head = nn.Linear(args.rnn_hidden_dim, self.goal_dim)
 
     def init_hidden(self):
@@ -24,6 +24,6 @@ class GoalAgent(nn.Module):
         h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim)
         h = self.rnn(x, h_in)
         
-        # 生成目标
-        goal = F.tanh(self.goal_head(h))
-        return goal, h
+        # 直接返回 Logits
+        logits = self.goal_head(h)
+        return logits, h

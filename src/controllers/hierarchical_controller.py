@@ -2,6 +2,7 @@ from modules.agents import REGISTRY as agent_REGISTRY
 from components.action_selectors import REGISTRY as action_REGISTRY
 import torch as th
 from .basic_controller import BasicMAC
+import torch.nn.functional as F
 
 class HierarchicalMAC(BasicMAC):
     def __init__(self, scheme, groups, args):
@@ -16,6 +17,7 @@ class HierarchicalMAC(BasicMAC):
 
         self.goal_hidden_states = None
         self.current_goals = None 
+        self.current_logits = None # [新增] 用于存储 Logits 以计算熵
 
     # --- [关键修改] 注册数据格式，让 Buffer 知道要存 "goals" ---
     def get_extra_scheme_shape(self, scheme):
@@ -24,10 +26,9 @@ class HierarchicalMAC(BasicMAC):
         }
 
     def _get_input_shape(self, scheme):
-        # Worker 输入包含 Goal
-        input_shape = self._get_input_shape_core(scheme)
-        input_shape += self.goal_dim 
-        return input_shape
+        # [修改] Worker 输入不再直接拼接 Goal，由 Hypernetwork 内部处理
+        # 所以这里只返回 core shape
+        return self._get_input_shape_core(scheme)
 
     def _get_input_shape_core(self, scheme):
         input_shape = scheme["obs"]["vshape"]
@@ -52,8 +53,17 @@ class HierarchicalMAC(BasicMAC):
 
         # 1. 更新 Goal (Manager)
         if t % self.goal_interval == 0:
-            goals, self.goal_hidden_states = self.goal_agent(base_inputs, self.goal_hidden_states)
-            self.current_goals = goals 
+            logits, self.goal_hidden_states = self.goal_agent(base_inputs, self.goal_hidden_states)
+            self.current_logits = logits # 保存 Logits
+
+            # [修改] 使用 Gumbel-Softmax 生成离散 Goal
+            if test_mode:
+                # 测试时：Hard Argmax (One-hot)
+                goal_idx = logits.argmax(dim=-1, keepdim=True)
+                goals = F.one_hot(goal_idx, num_classes=self.goal_dim).float()
+            else:
+                # 训练时：Gumbel-Softmax (Hard=True 表示输出 One-hot，但梯度可导)
+                goals = F.gumbel_softmax(logits, tau=1.0, hard=True)
 
         # --- [关键修改] 将 Goal 放入输出字典，Runner 会自动收集存储 ---
         self.mac_output_extra = {
@@ -62,10 +72,10 @@ class HierarchicalMAC(BasicMAC):
 
         # 2. 运行 Worker
         goals_reshaped = self.current_goals.view(bs * self.n_agents, -1)
-        worker_inputs = th.cat([base_inputs, goals_reshaped], dim=1)
         
         avail_actions = ep_batch["avail_actions"][:, t]
-        agent_outs, self.hidden_states = self.agent(worker_inputs, self.hidden_states)
+        # [修改] 将 goal 作为参数传入，而不是拼接在 inputs 里
+        agent_outs, self.hidden_states = self.agent(base_inputs, self.hidden_states, goal=goals_reshaped)
 
         if self.agent_output_type == "pi_logits":
             if getattr(self.args, "mask_before_softmax", True):
